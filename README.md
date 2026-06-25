@@ -1,19 +1,51 @@
-# :earth_americas: GDP dashboard template
+# MQD (Moris Quant Dashboard)
 
-A simple Streamlit app showing the GDP of different countries in the world.
+## Evidence-based Quant Investing Platform
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://gdp-dashboard-template.streamlit.app/)
+MQD는 실시간 시장 데이터를 기반으로 투자 의사결정을 지원하는 플랫폼입니다.
 
-### How to run it on your own machine
+### Data Source
+- Yahoo Finance
 
-1. Install the requirements
+### Supported Markets
+- KOSPI
+- KOSDAQ
+- Korea ETF
+- NYSE
+- NASDAQ
+- AMEX
+- US ETF
+- Bond
+- FX
+- Commodity
+- Crypto
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+### Indicators
+- RSI(14)
+- MA20
+- MA60
+- MA120
+- Volume Analysis
+- Relative Strength
+- MQD Score
+- Confidence Score
 
-2. Run the app
+### Dashboard
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+- Global Market
+- Korea
+- USA
+- ETF
+- Bond
+- FX
+- Commodity
+- Crypto
+
+### Automation
+
+- Telegram Morning Brief
+- Daily Investment Journal
+
+---
+
+Every signal must be backed by data.
