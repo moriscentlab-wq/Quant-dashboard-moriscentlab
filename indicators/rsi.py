@@ -11,37 +11,39 @@ def calculate_rsi(
     window: int = 14
 ) -> pd.DataFrame:
     """
-    RSI(Relative Strength Index)를 계산한다.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Yahoo Finance 가격 데이터
-
-    window : int
-        RSI 기간 (기본 14)
-
-    Returns
-    -------
-    pandas.DataFrame
-        RSI 컬럼이 추가된 데이터
+    RSI(Relative Strength Index) 계산
     """
 
     if data.empty:
         raise ValueError("DataFrame is empty.")
 
+    if "Close" not in data.columns:
+        raise KeyError("Close column not found.")
+
     df = data.copy()
 
-    delta = df["Close"].diff()
+    close = df["Close"].astype(float)
 
-    gain = delta.where(delta > 0, 0.0)
-    loss = -delta.where(delta < 0, 0.0)
+    delta = close.diff()
 
-    avg_gain = gain.rolling(window=window).mean()
-    avg_loss = loss.rolling(window=window).mean()
+    gain = delta.clip(lower=0)
+    loss = -delta.clip(upper=0)
+
+    avg_gain = gain.rolling(
+        window=window,
+        min_periods=window
+    ).mean()
+
+    avg_loss = loss.rolling(
+        window=window,
+        min_periods=window
+    ).mean()
 
     rs = avg_gain / avg_loss.replace(0, pd.NA)
 
-    df["RSI"] = 100 - (100 / (1 + rs))
+    df["RSI"] = (
+        100
+        - (100 / (1 + rs))
+    ).astype(float)
 
     return df
