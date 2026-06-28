@@ -1,14 +1,33 @@
 """
 MQD Dashboard
 Yahoo Finance Data Collector
-
-실시간 시세를 Yahoo Finance에서 수집한다.
 """
 
 from datetime import datetime
 
 import pandas as pd
 import yfinance as yf
+
+
+REQUIRED_COLUMNS = [
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Adj Close",
+    "Volume",
+]
+
+
+def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    yfinance 버전에 따라 MultiIndex가 반환되는 경우를 처리한다.
+    """
+
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
+
+    return df
 
 
 def get_history(
@@ -18,50 +37,62 @@ def get_history(
 ) -> pd.DataFrame:
     """
     Yahoo Finance에서 과거 데이터를 가져온다.
-
-    Parameters
-    ----------
-    ticker : str
-        Yahoo Finance 티커
-    period : str
-        ex) 1mo,3mo,6mo,1y,2y
-    interval : str
-        ex) 1d,1wk
-
-    Returns
-    -------
-    pandas.DataFrame
     """
 
-    df = yf.download(
-        tickers=ticker,
-        period=period,
-        interval=interval,
-        auto_adjust=False,
-        progress=False,
-        threads=False,
-    )
+    try:
+
+        df = yf.download(
+            tickers=ticker,
+            period=period,
+            interval=interval,
+            auto_adjust=False,
+            progress=False,
+            threads=False,
+        )
+
+    except Exception as exc:
+        raise ConnectionError(
+            f"Yahoo Finance download failed : {ticker}"
+        ) from exc
 
     if df.empty:
-        raise ValueError(f"No data returned for {ticker}")
+        raise ValueError(f"No data returned : {ticker}")
+
+    df = _normalize_columns(df)
 
     df = df.reset_index()
+
+    for column in REQUIRED_COLUMNS:
+        if column not in df.columns:
+            raise KeyError(f"Missing column : {column}")
 
     return df
 
 
 def get_latest_price(ticker: str) -> dict:
     """
-    현재 가격 정보 반환
+    최근 종가 및 변동률 반환
     """
 
-    history = get_history(ticker, period="5d")
+    history = get_history(
+        ticker=ticker,
+        period="5d",
+        interval="1d",
+    )
+
+    if len(history) < 2:
+        raise ValueError(
+            "Not enough historical data."
+        )
 
     latest = history.iloc[-1]
     previous = history.iloc[-2]
 
     change = latest["Close"] - previous["Close"]
-    change_pct = change / previous["Close"] * 100
+
+    change_pct = (
+        change / previous["Close"]
+    ) * 100
 
     return {
         "ticker": ticker,
@@ -75,7 +106,9 @@ def get_latest_price(ticker: str) -> dict:
 
 def get_last_update() -> str:
     """
-    Dashboard 업데이트 시간
+    Dashboard 갱신 시각
     """
 
-    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
