@@ -1,33 +1,51 @@
-📊 Moris Quant Dashboard (MQD)
+import streamlit as st
 
-────────────────────────
+from config.tickers import ALL_ASSETS
+from collectors.yahoo import (
+    get_latest_price,
+    get_last_update,
+)
 
-🌍 Global Market
+st.set_page_config(
+    page_title="MQD Dashboard",
+    page_icon="📊",
+    layout="wide",
+)
 
-🇰🇷 Korea
+st.title("📊 MQD Dashboard")
 
-🇺🇸 USA
+st.caption("Moris Quant Dashboard")
 
-💵 FX
+st.divider()
 
-🥇 Commodity
+st.subheader("🌍 Global Market")
 
-🪙 Crypto
+results = []
 
-────────────────────────
+for category, assets in ALL_ASSETS.items():
 
-MQD Market Score
+    with st.expander(category, expanded=False):
 
-Confidence Score
+        for _, asset in assets.items():
 
-────────────────────────
+            try:
 
-TOP10
+                data = get_latest_price(asset.ticker)
 
-────────────────────────
+                st.metric(
+                    label=asset.name,
+                    value=f"{data['close']:.2f}",
+                    delta=f"{data['change_pct']:.2f}%"
+                )
 
-Market Risk
+            except Exception as e:
 
-────────────────────────
+                st.warning(
+                    f"{asset.name}: {e}"
+                )
 
-Last Update
+st.divider()
+
+st.caption(
+    f"Last Update : {get_last_update()}"
+)
