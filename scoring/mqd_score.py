@@ -8,10 +8,10 @@ import pandas as pd
 
 def calculate_mqd_score(data: pd.DataFrame) -> pd.DataFrame:
     """
-    MQD Score 계산을 위한 기본 엔진.
+    MQD Score 계산 엔진
 
-    실제 점수 규칙은 프로젝트 정책에 따라
-    이후 단계에서 추가한다.
+    실제 점수 계산 로직은
+    MQD 공식 확정 후 추가한다.
     """
 
     if data.empty:
@@ -19,32 +19,21 @@ def calculate_mqd_score(data: pd.DataFrame) -> pd.DataFrame:
 
     df = data.copy()
 
-    score = 0
+    if "RSI" not in df.columns:
+        raise KeyError("RSI column not found.")
 
-    # --------------------------
-    # RSI
-    # --------------------------
-    if "RSI" in df.columns:
-        latest_rsi = df["RSI"].iloc[-1]
+    for column in ("MA20", "MA60", "MA120"):
+        if column not in df.columns:
+            raise KeyError(f"{column} column not found.")
 
-        if latest_rsi >= 50:
-            score += 1
+    # -------------------------
+    # MQD Score (임시 골격)
+    # -------------------------
+    df["MQD Score"] = 0
 
-    # --------------------------
-    # Moving Average
-    # --------------------------
-    ma_columns = {"MA20", "MA60", "MA120"}
-
-    if ma_columns.issubset(df.columns):
-
-        latest = df.iloc[-1]
-
-        if (
-            latest["MA20"] > latest["MA60"]
-            and latest["MA60"] > latest["MA120"]
-        ):
-            score += 1
-
-    df["MQD Score"] = score
+    # -------------------------
+    # Confidence Score (임시 골격)
+    # -------------------------
+    df["Confidence Score"] = 0
 
     return df
