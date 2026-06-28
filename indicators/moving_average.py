@@ -6,34 +6,43 @@ Moving Average Indicator
 import pandas as pd
 
 
+DEFAULT_WINDOWS = (20, 60, 120)
+
+
 def calculate_moving_average(
     data: pd.DataFrame,
-    windows: list[int] = [20, 60, 120]
+    windows: tuple[int, ...] = DEFAULT_WINDOWS,
 ) -> pd.DataFrame:
     """
-    이동평균(Moving Average)을 계산한다.
-
-    Parameters
-    ----------
-    data : pandas.DataFrame
-        Yahoo Finance 가격 데이터
-
-    windows : list[int]
-        계산할 이동평균 기간
-
-    Returns
-    -------
-    pandas.DataFrame
-        이동평균 컬럼이 추가된 데이터
+    이동평균(MA)을 계산한다.
     """
 
     if data.empty:
         raise ValueError("DataFrame is empty.")
 
+    if "Close" not in data.columns:
+        raise KeyError("Close column not found.")
+
     df = data.copy()
 
+    close = df["Close"].astype(float)
+
     for window in windows:
+
+        if window <= 0:
+            raise ValueError(
+                f"Invalid moving average window: {window}"
+            )
+
         column = f"MA{window}"
-        df[column] = df["Close"].rolling(window=window).mean()
+
+        df[column] = (
+            close
+            .rolling(
+                window=window,
+                min_periods=window,
+            )
+            .mean()
+        )
 
     return df
