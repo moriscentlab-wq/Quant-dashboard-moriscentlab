@@ -112,3 +112,18 @@ def get_last_update() -> str:
     return datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
     )
+
+def get_multiple_latest_prices(assets: dict) -> list[dict]:
+    """
+    여러 자산의 최신 가격 정보를 반환한다.
+    """
+
+    results = []
+
+    for asset in assets.values():
+        try:
+            results.append(get_latest_price(asset.ticker))
+        except Exception:
+            continue
+
+    return results
