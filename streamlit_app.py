@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 
 from config.tickers import ALL_ASSETS
 from collectors.yahoo import (
@@ -20,6 +21,7 @@ st.set_page_config(
 st.title("📊 MQD Dashboard")
 st.caption("Moris Quant Dashboard")
 st.divider()
+ranking = []
 
 st.subheader("🌍 Global Market")
 
@@ -39,7 +41,18 @@ for category, assets in ALL_ASSETS.items():
 
                 latest = history.iloc[-1]
                 previous = history.iloc[-2]
+ranking.append(
+    {
+        "Market": category,
+        "Name": asset.name,
+        "Ticker": asset.ticker,
+        "Price": round(float(latest["Close"]), 2),
+        "RSI": round(float(latest["RSI"]), 1),
+        "MQD": round(float(latest["MQD Score"]), 1),
+    }
+)
 
+                
                 close = float(latest["Close"])
 
                 change_pct = (
@@ -72,6 +85,29 @@ for category, assets in ALL_ASSETS.items():
                 )
 
 st.divider()
+
+st.caption(
+    f"Last Update : {get_last_update()}"
+)
+st.divider()
+
+st.subheader("🏆 MQD Ranking")
+
+if ranking:
+
+    df = pd.DataFrame(ranking)
+
+    df = df.sort_values(
+        by="MQD",
+        ascending=False,
+    ).reset_index(drop=True)
+
+    df.index = df.index + 1
+
+    st.dataframe(
+        df,
+        use_container_width=True,
+    )
 
 st.caption(
     f"Last Update : {get_last_update()}"
