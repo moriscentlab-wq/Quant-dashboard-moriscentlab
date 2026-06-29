@@ -27,13 +27,43 @@ def calculate_mqd_score(data: pd.DataFrame) -> pd.DataFrame:
             raise KeyError(f"{column} column not found.")
 
     # -------------------------
-    # MQD Score (임시 골격)
-    # -------------------------
-    df["MQD Score"] = 0
+    
+df["MQD Score"] = 0
 
-    # -------------------------
-    # Confidence Score (임시 골격)
-    # -------------------------
-    df["Confidence Score"] = 0
+# ① 정배열
+df.loc[
+    (df["MA20"] > df["MA60"]) &
+    (df["MA60"] > df["MA120"]),
+    "MQD Score"
+] += 30
+
+# ② 현재가가 MA20 위
+df.loc[
+    df["Close"] > df["MA20"],
+    "MQD Score"
+] += 20
+
+# ③ RSI 50~70
+df.loc[
+    (df["RSI"] >= 50) &
+    (df["RSI"] <= 70),
+    "MQD Score"
+] += 20
+
+# ④ RSI 30~50
+df.loc[
+    (df["RSI"] >= 30) &
+    (df["RSI"] < 50),
+    "MQD Score"
+] += 10
+
+# ⑤ MA20 상승
+df.loc[
+    df["MA20"] > df["MA20"].shift(1),
+    "MQD Score"
+] += 30
+
+df["Confidence Score"] = df["MQD Score"]
+
 
     return df
