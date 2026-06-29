@@ -1,5 +1,8 @@
 import streamlit as st
 
+from charts.price_chart import draw_price_chart
+from utils.colors import get_score_color, get_score_label
+
 st.set_page_config(
     page_title="MQD v1.0",
     page_icon="📈",
