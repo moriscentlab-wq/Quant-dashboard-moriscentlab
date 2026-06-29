@@ -62,9 +62,13 @@ def get_history(
 
     df = df.reset_index()
 
-    for column in REQUIRED_COLUMNS:
-        if column not in df.columns:
-            raise KeyError(f"Missing column : {column}")
+if "Adj Close" not in df.columns:
+    df["Adj Close"] = df["Close"]
+
+for column in REQUIRED_COLUMNS:
+
+    if column not in df.columns:
+        raise KeyError(f"Missing column : {column}")
 
     return df
 
