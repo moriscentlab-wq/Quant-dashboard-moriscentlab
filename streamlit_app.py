@@ -33,11 +33,12 @@ for category, assets in ALL_ASSETS.items():
 
             try:
 
-                history = get_history(asset.ticker)
+               history = get_history("005930.KS")
+history = calculate_moving_average(history)
+history = calculate_rsi(history)
+history = calculate_mqd_score(history)
 
-                history = calculate_moving_average(history)
-                history = calculate_rsi(history)
-                history = calculate_mqd_score(history)
+st.write(history.tail())
 
                 latest = history.iloc[-1]
                 previous = history.iloc[-2]
