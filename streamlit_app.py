@@ -78,11 +78,11 @@ ranking.append(
                         f"Confidence : {int(latest['Confidence Score'])}"
                     )
 
-            except Exception as e:
+except Exception as e:
 
-                st.warning(
-                    f"{asset.name}: {e}"
-                )
+    st.error(f"{asset.name}")
+
+    st.exception(e)
 
 st.divider()
 
