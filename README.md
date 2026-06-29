@@ -1,51 +1,36 @@
-# MQD (Moris Quant Dashboard)
-
-## Evidence-based Quant Investing Platform
-
-MQD는 실시간 시장 데이터를 기반으로 투자 의사결정을 지원하는 플랫폼입니다.
-
-### Data Source
-- Yahoo Finance
-
-### Supported Markets
-- KOSPI
-- KOSDAQ
-- Korea ETF
-- NYSE
-- NASDAQ
-- AMEX
-- US ETF
-- Bond
-- FX
-- Commodity
-- Crypto
-
-### Indicators
-- RSI(14)
-- MA20
-- MA60
-- MA120
-- Volume Analysis
-- Relative Strength
-- MQD Score
-- Confidence Score
-
-### Dashboard
-
-- Global Market
-- Korea
-- USA
-- ETF
-- Bond
-- FX
-- Commodity
-- Crypto
-
-### Automation
-
-- Telegram Morning Brief
-- Daily Investment Journal
-
----
-
-Every signal must be backed by data.
+MQD/
+│
+├── app.py
+├── requirements.txt
+├── README.md
+│
+├── config/
+│   ├── __init__.py
+│   ├── settings.py
+│   └── constants.py
+│
+├── core/
+│   ├── __init__.py
+│   ├── data_loader.py
+│   ├── indicator.py
+│   ├── strategy.py
+│   ├── ranking.py
+│   ├── backtest.py
+│   └── utils.py
+│
+├── pages/
+│   ├── 01_시장현황.py
+│   ├── 02_종목검색.py
+│   ├── 03_랭킹.py
+│   ├── 04_백테스트.py
+│   └── 05_설정.py
+│
+├── data/
+│   ├── raw/
+│   ├── processed/
+│   └── cache/
+│
+├── assets/
+├── tests/
+└── .streamlit/
+    └── config.toml
