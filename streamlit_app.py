@@ -80,7 +80,7 @@ ranking.append(
 
 except Exception as e:
 
-    st.error(f"{asset.name}")
+    st.error(asset.name)
 
     st.exception(e)
 
