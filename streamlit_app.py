@@ -42,13 +42,28 @@ for category, assets in ALL_ASSETS.items():
 
             try:
 
-                data = get_latest_price(asset.ticker)
+                history = get_history(asset.ticker)
 
-                st.metric(
-                    label=asset.name,
-                    value=f"{data['close']:.2f}",
-                    delta=f"{data['change_pct']:.2f}%"
-                )
+                history = calculate_moving_average(history)
+
+                history = calculate_rsi(history)
+
+                history = calculate_mqd_score(history)
+
+                latest = history.iloc[-1]
+
+                price = get_latest_price(asset.ticker)
+
+           st.metric(
+    label=f"{asset.name} | MQD {int(latest['MQD Score'])}",
+    value=f"{price['close']:.2f}",
+    delta=f"{price['change_pct']:.2f}%"
+)
+
+st.caption(
+    f"RSI : {latest['RSI']:.1f}   "
+    f"Confidence : {int(latest['Confidence Score'])}"
+)
 
             except Exception as e:
 
