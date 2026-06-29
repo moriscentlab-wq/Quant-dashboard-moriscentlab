@@ -13,10 +13,14 @@ st.title("📈 MQD v1.0")
 
 st.success("프로젝트가 정상적으로 실행되었습니다.")
 
-st.write(
-    """
-    MQD 투자 시스템
+color = get_score_color(score)
+label = get_score_label(score)
 
-    좌측 메뉴에서 기능을 선택하세요.
-    """
+st.markdown(
+    f"""
+    <h2 style='color:{color};'>
+    MQD Score : {score:.1f} ({label})
+    </h2>
+    """,
+    unsafe_allow_html=True,
 )
