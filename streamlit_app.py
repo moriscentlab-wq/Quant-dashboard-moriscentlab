@@ -2,15 +2,8 @@ import streamlit as st
 
 from config.tickers import ALL_ASSETS
 from collectors.yahoo import (
-    get_latest_price,
-    get_last_update,
-)
-
-
-from collectors.yahoo import (
-    get_latest_price,
-    get_last_update,
     get_history,
+    get_last_update,
 )
 
 from indicators.moving_average import calculate_moving_average
@@ -25,45 +18,52 @@ st.set_page_config(
 )
 
 st.title("📊 MQD Dashboard")
-
 st.caption("Moris Quant Dashboard")
-
 st.divider()
 
 st.subheader("🌍 Global Market")
-
-results = []
 
 for category, assets in ALL_ASSETS.items():
 
     with st.expander(category, expanded=False):
 
-        for _, asset in assets.items():
+        for asset in assets.values():
 
             try:
 
                 history = get_history(asset.ticker)
 
                 history = calculate_moving_average(history)
-
                 history = calculate_rsi(history)
-
                 history = calculate_mqd_score(history)
 
                 latest = history.iloc[-1]
+                previous = history.iloc[-2]
 
-                price = get_latest_price(asset.ticker)
+                close = float(latest["Close"])
 
-           st.metric(
-    label=f"{asset.name} | MQD {int(latest['MQD Score'])}",
-    value=f"{price['close']:.2f}",
-    delta=f"{price['change_pct']:.2f}%"
-)
+                change_pct = (
+                    (latest["Close"] - previous["Close"])
+                    / previous["Close"]
+                ) * 100
 
-st.caption(
-    f"RSI : {latest['RSI']:.1f}   "
-    f"Confidence : {int(latest['Confidence Score'])}"
-)
+                st.metric(
+                    label=f"{asset.name} | MQD {int(latest['MQD Score'])}",
+                    value=f"{close:.2f}",
+                    delta=f"{change_pct:.2f}%"
+                )
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    st.caption(
+                        f"RSI : {latest['RSI']:.1f}"
+                    )
+
+                with col2:
+                    st.caption(
+                        f"Confidence : {int(latest['Confidence Score'])}"
+                    )
 
             except Exception as e:
 
