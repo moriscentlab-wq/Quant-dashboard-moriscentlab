@@ -3,66 +3,171 @@ MQD Dashboard
 MQD Score Engine
 """
 
+from __future__ import annotations
+
+import logging
+
 import pandas as pd
 
+logger = logging.getLogger(__name__)
 
-def calculate_mqd_score(data: pd.DataFrame) -> pd.DataFrame:
+REQUIRED_COLUMNS = [
+    "Close",
+    "MA20",
+    "MA60",
+    "MA120",
+    "RSI",
+    "Momentum",
+    "ROC",
+]
+
+
+def calculate_mqd_score(
+    data: pd.DataFrame,
+) -> pd.DataFrame:
     """
-    MQD Score 계산 엔진
+    Calculate MQD Score and Confidence Score.
+
+    Returns
+    -------
+    pd.DataFrame
+        Original DataFrame with
+        MQD Score
+        Confidence Score
     """
+
+    logger.info("Calculating MQD Score")
 
     if data.empty:
         raise ValueError("DataFrame is empty.")
 
-    df = data.copy()
+    missing = [
+        column
+        for column in REQUIRED_COLUMNS
+        if column not in data.columns
+    ]
 
-    if "RSI" not in df.columns:
-        raise KeyError("RSI column not found.")
+    if missing:
+        raise KeyError(
+            f"Missing columns: {missing}"
+        )
 
-    for column in ("MA20", "MA60", "MA120"):
-        if column not in df.columns:
-            raise KeyError(f"{column} column not found.")
+    try:
 
-    # -------------------------
-    # MQD Score
-    # -------------------------
+        df = data.copy()
 
-    df["MQD Score"] = 0
+        scores = []
+        confidence_scores = []
 
-    # ① 정배열
-    df.loc[
-        (df["MA20"] > df["MA60"])
-        & (df["MA60"] > df["MA120"]),
-        "MQD Score",
-    ] += 30
+        for i in range(len(df)):
 
-    # ② 현재가 > MA20
-    df.loc[
-        df["Close"] > df["MA20"],
-        "MQD Score",
-    ] += 20
+            row = df.iloc[i]
 
-    # ③ RSI 50~70
-    df.loc[
-        (df["RSI"] >= 50)
-        & (df["RSI"] <= 70),
-        "MQD Score",
-    ] += 20
+            score = 0
 
-    # ④ RSI 30~50
-    df.loc[
-        (df["RSI"] >= 30)
-        & (df["RSI"] < 50),
-        "MQD Score",
-    ] += 10
+            confidence = 0
 
-    # ⑤ MA20 상승
-    df.loc[
-        df["MA20"] > df["MA20"].shift(1),
-        "MQD Score",
-    ] += 30
+            # -----------------------------
+            # MA Trend
+            # -----------------------------
 
-    # Confidence Score
-    df["Confidence Score"] = df["MQD Score"]
+            if (
+                pd.notna(row["MA20"])
+                and pd.notna(row["MA60"])
+                and pd.notna(row["MA120"])
+            ):
 
-    return df
+                if (
+                    row["MA20"]
+                    > row["MA60"]
+                    > row["MA120"]
+                ):
+                    score += 25
+                    confidence += 20
+
+            # -----------------------------
+            # Close > MA20
+            # -----------------------------
+
+            if (
+                pd.notna(row["MA20"])
+                and row["Close"] > row["MA20"]
+            ):
+                score += 15
+                confidence += 15
+
+            # -----------------------------
+            # RSI
+            # -----------------------------
+
+            if pd.notna(row["RSI"]):
+
+                if 50 <= row["RSI"] <= 70:
+                    score += 20
+                    confidence += 20
+
+                elif 40 <= row["RSI"] < 50:
+                    score += 10
+                    confidence += 10
+
+            # -----------------------------
+            # MA20 Rising
+            # -----------------------------
+
+            if i > 0:
+
+                previous_ma20 = df.iloc[i - 1]["MA20"]
+
+                if (
+                    pd.notna(previous_ma20)
+                    and pd.notna(row["MA20"])
+                    and row["MA20"] > previous_ma20
+                ):
+                    score += 20
+                    confidence += 15
+
+            # -----------------------------
+            # Momentum
+            # -----------------------------
+
+            if (
+                pd.notna(row["Momentum"])
+                and row["Momentum"] > 0
+            ):
+                score += 10
+                confidence += 10
+
+            # -----------------------------
+            # ROC
+            # -----------------------------
+
+            if (
+                pd.notna(row["ROC"])
+                and row["ROC"] > 0
+            ):
+                score += 10
+                confidence += 10
+
+            scores.append(min(score, 100))
+
+            confidence_scores.append(
+                min(confidence, 100)
+            )
+
+        df["MQD Score"] = scores
+
+        df["Confidence Score"] = confidence_scores
+
+        logger.info(
+            "MQD Score calculated successfully"
+        )
+
+        return df
+
+    except Exception:
+
+        logger.exception(
+            "MQD Score calculation failed."
+        )
+
+        raise
