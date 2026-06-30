@@ -261,6 +261,105 @@ try:
         f"Last Update : {get_last_update()}"
     )
 
+                current_price = float(latest["Close"])
+                previous_price = float(previous["Close"])
+
+                change_pct = (
+                    (current_price - previous_price)
+                    / previous_price
+                ) * 100
+
+                rsi = float(latest["RSI"])
+                mqd_score = float(latest["MQD Score"])
+                confidence = float(latest["Confidence Score"])
+
+                ranking.append(
+                    {
+                        "Market": category,
+                        "Name": asset.name,
+                        "Ticker": asset.ticker,
+                        "Price": round(current_price, 2),
+                        "Change (%)": round(change_pct, 2),
+                        "RSI": round(rsi, 1),
+                        "MQD": round(mqd_score, 1),
+                    }
+                )
+
+                score_color = get_score_color(mqd_score)
+                score_label = get_score_label(mqd_score)
+
+                st.markdown(f"### {asset.name}")
+
+                st.markdown(
+                    f"""
+                    <h3 style="color:{score_color};">
+                    MQD Score : {mqd_score:.0f} ({score_label})
+                    </h3>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                col1, col2, col3, col4 = st.columns(4)
+
+                with col1:
+                    st.metric("현재가", f"{current_price:,.2f}")
+
+                with col2:
+                    st.metric("등락률", f"{change_pct:.2f}%")
+
+                with col3:
+                    st.metric("RSI", f"{rsi:.1f}")
+
+                with col4:
+                    st.metric("Confidence", f"{confidence:.0f}")
+
+                draw_price_chart(history)
+
+                st.divider()
+
+            except Exception as e:
+
+                st.error(f"{asset.name} 처리 중 오류")
+
+                with st.expander("오류 상세"):
+                    st.exception(e)
+
+st.divider()
+
+st.subheader("🏆 MQD Ranking")
+
+if ranking:
+
+    ranking_df = pd.DataFrame(ranking)
+
+    ranking_df = ranking_df.sort_values(
+        by="MQD",
+        ascending=False,
+    ).reset_index(drop=True)
+
+    ranking_df.index += 1
+
+    st.dataframe(
+        ranking_df,
+        use_container_width=True,
+    )
+
+else:
+
+    st.info("표시할 데이터가 없습니다.")
+
+st.divider()
+
+try:
+
+    st.caption(
+        f"Last Update : {get_last_update()}"
+    )
+
+except Exception:
+
+    st.caption("Last Update : -")
+
 except Exception:
 
     st.caption("Last Update : -")
