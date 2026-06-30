@@ -1,44 +1,73 @@
-"""
-MQD Dashboard
-Color Utilities
-"""
+MQD 프로젝트의
 
+utils/colors.py
 
-def get_score_color(score: float) -> str:
-    """
-    MQD Score에 따른 색상 반환
-    """
+파일을 작성해주세요.
 
-    if score >= 80:
-        return "#00C853"      # Strong Green
+===================================
 
-    elif score >= 60:
-        return "#64DD17"      # Green
+MQD Score
 
-    elif score >= 40:
-        return "#FFD600"      # Yellow
+0~100
 
-    elif score >= 20:
-        return "#FF9100"      # Orange
+===================================
 
-    return "#D50000"          # Red
+함수
 
+get_score_color(score)
 
-def get_score_label(score: float) -> str:
-    """
-    MQD Score Label
-    """
+get_score_label(score)
 
-    if score >= 80:
-        return "🟢 Strong Buy"
+===================================
 
-    elif score >= 60:
-        return "🟢 Buy"
+Score
 
-    elif score >= 40:
-        return "🟡 Neutral"
+80~100
 
-    elif score >= 20:
-        return "🟠 Weak"
+Strong Buy
 
-    return "🔴 Risk"
+Green
+
+-----------------------------------
+
+60~79
+
+Buy
+
+Light Green
+
+-----------------------------------
+
+40~59
+
+Neutral
+
+Yellow
+
+-----------------------------------
+
+20~39
+
+Weak
+
+Orange
+
+-----------------------------------
+
+0~19
+
+Risk
+
+Red
+
+===================================
+
+실행 가능한 전체 코드 작성
+
+Type Hint
+
+Docstring
+
+PEP8
+
+적용
