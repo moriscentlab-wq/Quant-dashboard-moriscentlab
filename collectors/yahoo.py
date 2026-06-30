@@ -1,43 +1,62 @@
 """
 MQD Dashboard
 Yahoo Finance Data Collector
+
+Author : Mori Quant Dashboard
 """
 
+from __future__ import annotations
+
+import logging
 from datetime import datetime
 
 import pandas as pd
+import streamlit as st
 import yfinance as yf
 
+logger = logging.getLogger(__name__)
 
 REQUIRED_COLUMNS = [
     "Open",
     "High",
     "Low",
     "Close",
-    "Adj Close",
     "Volume",
 ]
 
 
-def _normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    yfinance 버전에 따라 MultiIndex가 반환되는 경우를 처리한다.
-    """
-
-    if isinstance(df.columns, pd.MultiIndex):
-        df.columns = df.columns.get_level_values(0)
-
-    return df
-
-
+@st.cache_data(ttl=300, show_spinner=False)
 def get_history(
     ticker: str,
-    period: str = "6mo",
+    period: str = "1y",
     interval: str = "1d",
 ) -> pd.DataFrame:
     """
-    Yahoo Finance에서 과거 데이터를 가져온다.
+    Download historical price data from Yahoo Finance.
+
+    Parameters
+    ----------
+    ticker : str
+        Yahoo ticker symbol.
+    period : str
+        Download period.
+    interval : str
+        Candle interval.
+
+    Returns
+    -------
+    pd.DataFrame
+        Historical OHLCV DataFrame.
+
+    Raises
+    ------
+    ConnectionError
+        Yahoo download failed.
+    ValueError
+        Empty dataframe or invalid dataframe.
     """
+
+    logger.info("Downloading Yahoo data : %s", ticker)
 
     try:
 
@@ -51,83 +70,81 @@ def get_history(
         )
 
     except Exception as exc:
+        logger.exception("Yahoo Finance connection failed.")
         raise ConnectionError(
-            f"Yahoo Finance download failed : {ticker}"
+            f"Failed to download data : {ticker}"
         ) from exc
 
     if df.empty:
-        raise ValueError(f"No data returned : {ticker}")
+        logger.error("Empty dataframe : %s", ticker)
+        raise ValueError(
+            f"No data returned for {ticker}"
+        )
 
-    df = _normalize_columns(df)
+    # -----------------------------------
+    # MultiIndex 처리
+    # -----------------------------------
 
-    df = df.reset_index()
+    if isinstance(df.columns, pd.MultiIndex):
+        df.columns = df.columns.get_level_values(0)
 
-if "Adj Close" not in df.columns:
-    df["Adj Close"] = df["Close"]
+    # -----------------------------------
+    # Adj Close 제거
+    # -----------------------------------
 
-for column in REQUIRED_COLUMNS:
+    if "Adj Close" in df.columns:
+        df = df.drop(columns="Adj Close")
 
-    if column not in df.columns:
-        raise KeyError(f"Missing column : {column}")
+    # -----------------------------------
+    # 컬럼명 표준화
+    # -----------------------------------
+
+    rename_map = {
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "close": "Close",
+        "volume": "Volume",
+    }
+
+    df.rename(columns=rename_map, inplace=True)
+
+    # -----------------------------------
+    # 필수 컬럼 확인
+    # -----------------------------------
+
+    missing = [
+        column
+        for column in REQUIRED_COLUMNS
+        if column not in df.columns
+    ]
+
+    if missing:
+        raise ValueError(
+            f"Missing columns : {missing}"
+        )
+
+    df = df[REQUIRED_COLUMNS].copy()
+
+    df.sort_index(inplace=True)
+
+    logger.info(
+        "%s downloaded successfully (%d rows)",
+        ticker,
+        len(df),
+    )
 
     return df
 
 
-def get_latest_price(ticker: str) -> dict:
-    """
-    최근 종가 및 변동률 반환
-    """
-
-    history = get_history(
-        ticker=ticker,
-        period="5d",
-        interval="1d",
-    )
-
-    if len(history) < 2:
-        raise ValueError(
-            "Not enough historical data."
-        )
-
-    latest = history.iloc[-1]
-    previous = history.iloc[-2]
-
-    change = latest["Close"] - previous["Close"]
-
-    change_pct = (
-        change / previous["Close"]
-    ) * 100
-
-    return {
-        "ticker": ticker,
-        "date": latest["Date"],
-        "close": float(latest["Close"]),
-        "change": float(change),
-        "change_pct": float(change_pct),
-        "volume": int(latest["Volume"]),
-    }
-
-
 def get_last_update() -> str:
     """
-    Dashboard 갱신 시각
+    Return current local datetime.
+
+    Returns
+    -------
+    str
+        YYYY-MM-DD HH:MM
     """
 
-    return datetime.now().strftime(
-        "%Y-%m-%d %H:%M:%S"
-    )
-
-def get_multiple_latest_prices(assets: dict) -> list[dict]:
-    """
-    여러 자산의 최신 가격 정보를 반환한다.
-    """
-
-    results = []
-
-    for asset in assets.values():
-        try:
-            results.append(get_latest_price(asset.ticker))
-        except Exception:
-            continue
-
-    return results
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
