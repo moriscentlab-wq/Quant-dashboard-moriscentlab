@@ -1,136 +1,127 @@
 """
 MQD Dashboard
-Price Chart Module
+Price Chart
 """
 
 from __future__ import annotations
+
+import logging
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+logger = logging.getLogger(__name__)
 
-def draw_price_chart(data: pd.DataFrame) -> None:
+PRICE_COLUMNS = [
+    "Close",
+    "MA20",
+    "MA60",
+    "MA120",
+]
+
+
+def draw_price_chart(
+    data: pd.DataFrame,
+) -> None:
     """
-    Draw price chart with moving averages.
+    Draw price chart using Plotly.
 
     Parameters
     ----------
     data : pd.DataFrame
-        Price dataframe.
+        Price DataFrame.
 
     Returns
     -------
     None
     """
 
+    logger.info("Drawing price chart")
+
     if data.empty:
-        st.warning("차트를 표시할 데이터가 없습니다.")
+        st.warning("No chart data available.")
         return
 
-    fig = go.Figure()
+    if "Close" not in data.columns:
+        st.warning("Close column not found.")
+        return
 
-    # ---------------------------------------
-    # Close
-    # ---------------------------------------
+    try:
 
-    fig.add_trace(
-        go.Scatter(
-            x=data.index,
-            y=data["Close"],
-            name="Close",
-            mode="lines",
-            line=dict(
-                width=3,
-                color="#1f77b4",
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data["Close"],
+                mode="lines",
+                name="Close",
+            )
+        )
+
+        for column in ["MA20", "MA60", "MA120"]:
+
+            if column in data.columns:
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=data.index,
+                        y=data[column],
+                        mode="lines",
+                        name=column,
+                    )
+                )
+
+        fig.update_layout(
+
+            title="Price Chart",
+
+            template="plotly_white",
+
+            height=600,
+
+            hovermode="x unified",
+
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1,
+            ),
+
+            margin=dict(
+                l=20,
+                r=20,
+                t=50,
+                b=20,
             ),
         )
-    )
 
-    # ---------------------------------------
-    # MA20
-    # ---------------------------------------
-
-    if "MA20" in data.columns:
-
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=data["MA20"],
-                name="MA20",
-                mode="lines",
-                line=dict(
-                    width=1.5,
-                    dash="solid",
-                ),
-            )
+        fig.update_xaxes(
+            showgrid=True,
         )
 
-    # ---------------------------------------
-    # MA60
-    # ---------------------------------------
-
-    if "MA60" in data.columns:
-
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=data["MA60"],
-                name="MA60",
-                mode="lines",
-                line=dict(
-                    width=1.5,
-                    dash="dot",
-                ),
-            )
+        fig.update_yaxes(
+            showgrid=True,
         )
 
-    # ---------------------------------------
-    # MA120
-    # ---------------------------------------
-
-    if "MA120" in data.columns:
-
-        fig.add_trace(
-            go.Scatter(
-                x=data.index,
-                y=data["MA120"],
-                name="MA120",
-                mode="lines",
-                line=dict(
-                    width=1.5,
-                    dash="dash",
-                ),
-            )
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
         )
 
-    # ---------------------------------------
-    # Layout
-    # ---------------------------------------
+        logger.info(
+            "Price chart created successfully"
+        )
 
-    fig.update_layout(
-        template="plotly_white",
-        height=600,
-        hovermode="x unified",
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom",
-            y=1.02,
-            xanchor="left",
-            x=0,
-        ),
-        margin=dict(
-            l=20,
-            r=20,
-            t=40,
-            b=20,
-        ),
-        xaxis_title="Date",
-        yaxis_title="Price",
-    )
+    except Exception:
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True,
-    )
+        logger.exception(
+            "Failed to draw price chart."
+        )
+
+        st.error(
+            "차트를 생성하는 중 오류가 발생했습니다."
+        )
