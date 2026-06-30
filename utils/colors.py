@@ -1,73 +1,68 @@
-MQD 프로젝트의
+"""
+MQD Dashboard
+Color Utility
 
-utils/colors.py
+Provides color and label mapping for MQD Score.
+"""
 
-파일을 작성해주세요.
+from __future__ import annotations
 
-===================================
 
-MQD Score
+def get_score_color(score: float) -> str:
+    """
+    Return a color based on the MQD Score.
 
-0~100
+    Parameters
+    ----------
+    score : float
+        MQD Score (0~100)
 
-===================================
+    Returns
+    -------
+    str
+        Hex color code.
+    """
 
-함수
+    if score >= 80:
+        return "#2E7D32"  # Green
 
-get_score_color(score)
+    if score >= 60:
+        return "#66BB6A"  # Light Green
 
-get_score_label(score)
+    if score >= 40:
+        return "#FDD835"  # Yellow
 
-===================================
+    if score >= 20:
+        return "#FB8C00"  # Orange
 
-Score
+    return "#E53935"  # Red
 
-80~100
 
-Strong Buy
+def get_score_label(score: float) -> str:
+    """
+    Return a label based on the MQD Score.
 
-Green
+    Parameters
+    ----------
+    score : float
+        MQD Score (0~100)
 
------------------------------------
+    Returns
+    -------
+    str
+        Score label.
+    """
 
-60~79
+    if score >= 80:
+        return "Strong Buy"
 
-Buy
+    if score >= 60:
+        return "Buy"
 
-Light Green
+    if score >= 40:
+        return "Neutral"
 
------------------------------------
+    if score >= 20:
+        return "Weak"
 
-40~59
-
-Neutral
-
-Yellow
-
------------------------------------
-
-20~39
-
-Weak
-
-Orange
-
------------------------------------
-
-0~19
-
-Risk
-
-Red
-
-===================================
-
-실행 가능한 전체 코드 작성
-
-Type Hint
-
-Docstring
-
-PEP8
-
-적용
+    return "Risk"
