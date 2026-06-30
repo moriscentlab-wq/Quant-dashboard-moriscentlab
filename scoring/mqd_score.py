@@ -293,3 +293,80 @@ def calculate_money_flow_score(state: dict) -> float:
         logger.exception("Money flow score calculation failed.")
 
         return 50.0
+
+
+# ==========================================================
+# FINAL MQD SCORE
+# ==========================================================
+
+
+def calculate_mqd_score(state: dict) -> dict[str, float]:
+    """
+    Final MQD Score (0 ~ 100)
+
+    Combines:
+    - Trend (30%)
+    - Momentum (20%)
+    - Money Flow (20%)
+    - Volume (10%)
+    - Volatility/Risk (10%)
+    """
+
+    try:
+
+        trend = calculate_trend_score(state)
+        momentum = calculate_momentum_score(state)
+        flow = calculate_money_flow_score(state)
+        volatility = calculate_volatility_risk_score(state)
+
+        # ==========================
+        # Weighted Score
+        # ==========================
+        final_score = (
+            trend * WEIGHTS["trend"]
+            + momentum * WEIGHTS["momentum"]
+            + flow * WEIGHTS["money_flow"]
+            + volatility * (WEIGHTS["volatility"] + WEIGHTS["risk"])
+        )
+
+        final_score = max(0.0, min(100.0, final_score))
+
+        # ==========================
+        # Interpretation
+        # ==========================
+        if final_score >= 80:
+            signal = "Strong Bullish"
+
+        elif final_score >= 60:
+            signal = "Bullish"
+
+        elif final_score >= 40:
+            signal = "Neutral"
+
+        elif final_score >= 20:
+            signal = "Bearish"
+
+        else:
+            signal = "Strong Bearish"
+
+        return {
+            "mqd_score": final_score,
+            "signal": signal,
+            "trend": trend,
+            "momentum": momentum,
+            "money_flow": flow,
+            "volatility": volatility,
+        }
+
+    except Exception:
+
+        logger.exception("Final MQD score calculation failed.")
+
+        return {
+            "mqd_score": 50.0,
+            "signal": "Neutral",
+            "trend": 50.0,
+            "momentum": 50.0,
+            "money_flow": 50.0,
+            "volatility": 50.0,
+        }
