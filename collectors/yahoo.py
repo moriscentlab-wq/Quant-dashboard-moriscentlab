@@ -99,13 +99,10 @@ def get_history(
     # 컬럼명 표준화
     # -----------------------------------
 
-    rename_map = {
-        "open": "Open",
-        "high": "High",
-        "low": "Low",
-        "close": "Close",
-        "volume": "Volume",
-    }
+    df.columns = [
+    str(col).strip().title()
+    for col in df.columns
+]
 
     df.rename(columns=rename_map, inplace=True)
 
@@ -128,11 +125,10 @@ def get_history(
 
     df.sort_index(inplace=True)
 
-    logger.info(
-        "%s downloaded successfully (%d rows)",
-        ticker,
-        len(df),
-    )
+    logger.debug(
+    "Last rows:\n%s",
+    df.tail()
+)
 
     return df
 
