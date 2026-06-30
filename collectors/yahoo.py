@@ -1,8 +1,6 @@
 """
 MQD Dashboard
 Yahoo Finance Data Collector
-
-Author : Mori Quant Dashboard
 """
 
 from __future__ import annotations
@@ -32,31 +30,10 @@ def get_history(
     interval: str = "1d",
 ) -> pd.DataFrame:
     """
-    Download historical price data from Yahoo Finance.
-
-    Parameters
-    ----------
-    ticker : str
-        Yahoo ticker symbol.
-    period : str
-        Download period.
-    interval : str
-        Candle interval.
-
-    Returns
-    -------
-    pd.DataFrame
-        Historical OHLCV DataFrame.
-
-    Raises
-    ------
-    ConnectionError
-        Yahoo download failed.
-    ValueError
-        Empty dataframe or invalid dataframe.
+    Download historical OHLCV data from Yahoo Finance.
     """
 
-    logger.info("Downloading Yahoo data : %s", ticker)
+    logger.info("Downloading Yahoo Finance data: %s", ticker)
 
     try:
 
@@ -70,45 +47,54 @@ def get_history(
         )
 
     except Exception as exc:
-        logger.exception("Yahoo Finance connection failed.")
+
+        logger.exception("Yahoo Finance download failed.")
+
         raise ConnectionError(
-            f"Failed to download data : {ticker}"
+            f"Failed to download data for {ticker}"
         ) from exc
 
     if df.empty:
-        logger.error("Empty dataframe : %s", ticker)
+
+        logger.error("Empty DataFrame returned.")
+
         raise ValueError(
             f"No data returned for {ticker}"
         )
 
-    # -----------------------------------
-    # MultiIndex 처리
-    # -----------------------------------
+    # -------------------------------------
+    # Handle MultiIndex Columns
+    # -------------------------------------
 
     if isinstance(df.columns, pd.MultiIndex):
+
         df.columns = df.columns.get_level_values(0)
 
-    # -----------------------------------
-    # Adj Close 제거
-    # -----------------------------------
+    # -------------------------------------
+    # Remove Adj Close
+    # -------------------------------------
 
     if "Adj Close" in df.columns:
-        df = df.drop(columns="Adj Close")
 
-    # -----------------------------------
-    # 컬럼명 표준화
-    # -----------------------------------
+        df = df.drop(columns=["Adj Close"])
 
-    df.columns = [
-    str(col).strip().title()
-    for col in df.columns
-]
+    # -------------------------------------
+    # Normalize column names
+    # -------------------------------------
+
+    rename_map = {
+        "open": "Open",
+        "high": "High",
+        "low": "Low",
+        "close": "Close",
+        "volume": "Volume",
+    }
 
     df.rename(columns=rename_map, inplace=True)
 
-    # -----------------------------------
-    # 필수 컬럼 확인
-    # -----------------------------------
+    # -------------------------------------
+    # Validate required columns
+    # -------------------------------------
 
     missing = [
         column
@@ -117,30 +103,31 @@ def get_history(
     ]
 
     if missing:
+
+        logger.error("Missing columns: %s", missing)
+
         raise ValueError(
-            f"Missing columns : {missing}"
+            f"Missing columns: {missing}"
         )
 
     df = df[REQUIRED_COLUMNS].copy()
 
     df.sort_index(inplace=True)
 
-    logger.debug(
-    "Last rows:\n%s",
-    df.tail()
-)
+    logger.info(
+        "Downloaded %d rows for %s",
+        len(df),
+        ticker,
+    )
 
     return df
 
 
 def get_last_update() -> str:
     """
-    Return current local datetime.
-
-    Returns
-    -------
-    str
-        YYYY-MM-DD HH:MM
+    Return current local timestamp.
     """
 
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
+    return datetime.now().strftime(
+        "%Y-%m-%d %H:%M:%S"
+    )
