@@ -19,13 +19,14 @@ def calculate_moving_average(
     windows: tuple[int, ...] = DEFAULT_WINDOWS,
 ) -> pd.DataFrame:
     """
-    Calculate moving averages for the specified windows.
+    Calculate moving averages.
 
     Parameters
     ----------
     data : pd.DataFrame
         Price DataFrame containing the Close column.
-    windows : tuple[int, ...], optional
+
+    windows : tuple[int, ...]
         Moving average periods.
 
     Returns
@@ -36,9 +37,10 @@ def calculate_moving_average(
     Raises
     ------
     ValueError
-        If the DataFrame is empty or an invalid window is supplied.
+        If DataFrame is empty or window is invalid.
+
     KeyError
-        If the Close column is missing.
+        If Close column is missing.
     """
 
     logger.info("Calculating moving averages")
@@ -52,6 +54,7 @@ def calculate_moving_average(
         raise KeyError("Close column not found.")
 
     try:
+
         df = data.copy()
 
         close = df["Close"].astype(float)
@@ -59,10 +62,6 @@ def calculate_moving_average(
         for window in windows:
 
             if window <= 0:
-                logger.error(
-                    "Invalid moving average window: %s",
-                    window,
-                )
                 raise ValueError(
                     f"Invalid moving average window: {window}"
                 )
@@ -83,5 +82,7 @@ def calculate_moving_average(
         return df
 
     except Exception:
-        logger.exception("Moving average calculation failed.")
+        logger.exception(
+            "Failed to calculate moving averages."
+        )
         raise
