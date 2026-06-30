@@ -12,7 +12,6 @@ This is the FINAL presentation layer.
 Python 3.12
 """
 
-from __future__ import annotations
 
 import streamlit as st
 import pandas as pd
