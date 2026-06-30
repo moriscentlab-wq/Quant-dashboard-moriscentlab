@@ -1,89 +1,136 @@
-MQD(Mori Quant Dashboard) 프로젝트의
+"""
+MQD Dashboard
+Price Chart Module
+"""
 
-charts/price_chart.py
+from __future__ import annotations
 
-파일을 작성해주세요.
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
 
-===================================
 
-Python 3.12
+def draw_price_chart(data: pd.DataFrame) -> None:
+    """
+    Draw price chart with moving averages.
 
-Streamlit
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Price dataframe.
 
-Plotly
+    Returns
+    -------
+    None
+    """
 
-PEP8
+    if data.empty:
+        st.warning("차트를 표시할 데이터가 없습니다.")
+        return
 
-Type Hint
+    fig = go.Figure()
 
-Docstring
+    # ---------------------------------------
+    # Close
+    # ---------------------------------------
 
-===================================
+    fig.add_trace(
+        go.Scatter(
+            x=data.index,
+            y=data["Close"],
+            name="Close",
+            mode="lines",
+            line=dict(
+                width=3,
+                color="#1f77b4",
+            ),
+        )
+    )
 
-필수 함수
+    # ---------------------------------------
+    # MA20
+    # ---------------------------------------
 
-def draw_price_chart(
-    data: pd.DataFrame,
-) -> None
+    if "MA20" in data.columns:
 
-===================================
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data["MA20"],
+                name="MA20",
+                mode="lines",
+                line=dict(
+                    width=1.5,
+                    dash="solid",
+                ),
+            )
+        )
 
-기능
+    # ---------------------------------------
+    # MA60
+    # ---------------------------------------
 
-Plotly 사용
+    if "MA60" in data.columns:
 
-종가(Close)
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data["MA60"],
+                name="MA60",
+                mode="lines",
+                line=dict(
+                    width=1.5,
+                    dash="dot",
+                ),
+            )
+        )
 
-MA20
+    # ---------------------------------------
+    # MA120
+    # ---------------------------------------
 
-MA60
+    if "MA120" in data.columns:
 
-MA120
+        fig.add_trace(
+            go.Scatter(
+                x=data.index,
+                y=data["MA120"],
+                name="MA120",
+                mode="lines",
+                line=dict(
+                    width=1.5,
+                    dash="dash",
+                ),
+            )
+        )
 
-4개 라인 출력
+    # ---------------------------------------
+    # Layout
+    # ---------------------------------------
 
------------------------------------
+    fig.update_layout(
+        template="plotly_white",
+        height=600,
+        hovermode="x unified",
+        showlegend=True,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="left",
+            x=0,
+        ),
+        margin=dict(
+            l=20,
+            r=20,
+            t=40,
+            b=20,
+        ),
+        xaxis_title="Date",
+        yaxis_title="Price",
+    )
 
-차트 옵션
-
-template="plotly_white"
-
-height=600
-
-hovermode="x unified"
-
-use_container_width=True
-
------------------------------------
-
-legend 표시
-
------------------------------------
-
-Close는 굵게 표시
-
------------------------------------
-
-MA20
-
-MA60
-
-MA120
-
-컬럼이 없으면 표시하지 말 것
-
------------------------------------
-
-Streamlit
-
-st.plotly_chart()
-
-사용
-
-===================================
-
-실행 가능한 전체 코드 작성
-
-생략 금지
-
-복사 후 바로 실행 가능해야 함
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+    )
