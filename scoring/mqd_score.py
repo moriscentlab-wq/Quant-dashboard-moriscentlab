@@ -1,173 +1,295 @@
 """
-MQD Dashboard
 MQD Score Engine
+
+MQD v2
+
+Purpose
+-------
+Convert market state into a unified score (0 ~ 100)
+
+This module MUST NOT compute indicators.
+It only consumes pipeline output.
+
+Python 3.12
 """
 
 from __future__ import annotations
 
 import logging
 
-import pandas as pd
-
 logger = logging.getLogger(__name__)
 
-REQUIRED_COLUMNS = [
-    "Close",
-    "MA20",
-    "MA60",
-    "MA120",
-    "RSI",
-    "Momentum",
-    "ROC",
-]
+
+# ==========================================================
+# Score Weights (MQD v2)
+# ==========================================================
+
+WEIGHTS = {
+    "trend": 0.30,
+    "momentum": 0.20,
+    "money_flow": 0.20,
+    "volume": 0.10,
+    "volatility": 0.10,
+    "risk": 0.10,
+}
+
+# ==========================================================
+# Trend Score
+# ==========================================================
 
 
-def calculate_mqd_score(
-    data: pd.DataFrame,
-) -> pd.DataFrame:
+def calculate_trend_score(state: dict) -> float:
     """
-    Calculate MQD Score and Confidence Score.
-
-    Returns
-    -------
-    pd.DataFrame
-        Original DataFrame with
-        MQD Score
-        Confidence Score
+    Trend component score (0 ~ 100)
+    Weight: 30%
     """
 
-    logger.info("Calculating MQD Score")
-
-    if data.empty:
-        raise ValueError("DataFrame is empty.")
-
-    missing = [
-        column
-        for column in REQUIRED_COLUMNS
-        if column not in data.columns
-    ]
-
-    if missing:
-        raise KeyError(
-            f"Missing columns: {missing}"
-        )
+    score = 0.0
 
     try:
 
-        df = data.copy()
+        # ==========================
+        # Bullish Alignment
+        # ==========================
+        if state.get("trend_bullish"):
+            score += 40
 
-        scores = []
-        confidence_scores = []
+        # ==========================
+        # Bearish Penalty
+        # ==========================
+        if state.get("trend_bearish"):
+            score -= 40
 
-        for i in range(len(df)):
+        # ==========================
+        # MACD Confirmation
+        # ==========================
+        if state.get("macd_bullish"):
+            score += 20
 
-            row = df.iloc[i]
+        if state.get("macd_bearish"):
+            score -= 20
 
-            score = 0
+        # ==========================
+        # VWAP Bias
+        # ==========================
+        if state.get("above_vwap"):
+            score += 20
 
-            confidence = 0
+        if state.get("below_vwap"):
+            score -= 20
 
-            # -----------------------------
-            # MA Trend
-            # -----------------------------
+        # ==========================
+        # Normalize (0 ~ 100)
+        # ==========================
+        score = 50 + score
 
-            if (
-                pd.notna(row["MA20"])
-                and pd.notna(row["MA60"])
-                and pd.notna(row["MA120"])
-            ):
-
-                if (
-                    row["MA20"]
-                    > row["MA60"]
-                    > row["MA120"]
-                ):
-                    score += 25
-                    confidence += 20
-
-            # -----------------------------
-            # Close > MA20
-            # -----------------------------
-
-            if (
-                pd.notna(row["MA20"])
-                and row["Close"] > row["MA20"]
-            ):
-                score += 15
-                confidence += 15
-
-            # -----------------------------
-            # RSI
-            # -----------------------------
-
-            if pd.notna(row["RSI"]):
-
-                if 50 <= row["RSI"] <= 70:
-                    score += 20
-                    confidence += 20
-
-                elif 40 <= row["RSI"] < 50:
-                    score += 10
-                    confidence += 10
-
-            # -----------------------------
-            # MA20 Rising
-            # -----------------------------
-
-            if i > 0:
-
-                previous_ma20 = df.iloc[i - 1]["MA20"]
-
-                if (
-                    pd.notna(previous_ma20)
-                    and pd.notna(row["MA20"])
-                    and row["MA20"] > previous_ma20
-                ):
-                    score += 20
-                    confidence += 15
-
-            # -----------------------------
-            # Momentum
-            # -----------------------------
-
-            if (
-                pd.notna(row["Momentum"])
-                and row["Momentum"] > 0
-            ):
-                score += 10
-                confidence += 10
-
-            # -----------------------------
-            # ROC
-            # -----------------------------
-
-            if (
-                pd.notna(row["ROC"])
-                and row["ROC"] > 0
-            ):
-                score += 10
-                confidence += 10
-
-            scores.append(min(score, 100))
-
-            confidence_scores.append(
-                min(confidence, 100)
-            )
-
-        df["MQD Score"] = scores
-
-        df["Confidence Score"] = confidence_scores
-
-        logger.info(
-            "MQD Score calculated successfully"
-        )
-
-        return df
+        return max(0.0, min(100.0, score))
 
     except Exception:
 
-        logger.exception(
-            "MQD Score calculation failed."
-        )
+        logger.exception("Trend score calculation failed.")
 
-        raise
+        return 50.0
+
+# ==========================================================
+# Momentum Score
+# ==========================================================
+
+
+def calculate_momentum_score(state: dict) -> float:
+    """
+    Momentum component score (0 ~ 100)
+    Weight: 20%
+    """
+
+    score = 50.0
+
+    try:
+
+        # ==========================
+        # RSI Contribution
+        # ==========================
+        rsi = state.get("rsi", 50)
+
+        if rsi >= 70:
+            score -= 15  # overbought risk
+
+        elif rsi <= 30:
+            score += 15  # oversold rebound potential
+
+        elif 50 < rsi < 70:
+            score += 10  # bullish momentum
+
+        elif 30 < rsi < 50:
+            score -= 10  # bearish pressure
+
+        # ==========================
+        # MACD Confirmation
+        # ==========================
+        if state.get("macd_bullish"):
+            score += 20
+
+        if state.get("macd_bearish"):
+            score -= 20
+
+        # ==========================
+        # MFI (Money Flow Momentum)
+        # ==========================
+        mfi = state.get("mfi", 50)
+
+        if mfi >= 80:
+            score -= 10  # overheating
+
+        elif mfi <= 20:
+            score += 10  # accumulation zone
+
+        elif mfi > 50:
+            score += 10  # inflow strength
+
+        else:
+            score -= 10  # outflow pressure
+
+        # ==========================
+        # Normalize
+        # ==========================
+        return max(0.0, min(100.0, score))
+
+    except Exception:
+
+        logger.exception("Momentum score calculation failed.")
+
+        return 50.0
+
+# ==========================================================
+# Money Flow + Volume Score
+# ==========================================================
+
+
+def calculate_money_flow_score(state: dict) -> float:
+    """
+    Money Flow + Volume score (0 ~ 100)
+    Weight: 20%
+    """
+
+    score = 50.0
+
+    try:
+
+        # ==========================
+        # MFI Contribution
+        # ==========================
+        mfi = state.get("mfi", 50)
+
+        if mfi >= 80:
+            score -= 15  # overbought distribution risk
+
+        elif mfi <= 20:
+            score += 20  # strong accumulation
+
+        elif mfi > 50:
+            score += 10  # inflow dominance
+
+        else:
+            score -= 10  # outflow pressure
+
+        # ==========================
+        # OBV Trend
+        # ==========================
+        if state.get("obv_rising"):
+            score += 20
+
+        if state.get("obv_falling"):
+            score -= 20
+
+        # ==========================
+        # OBV Breakout (Strong signal)
+        # ==========================
+        if state.get("obv_breakout"):
+            score += 10
+
+        # ==========================
+        # Combined interpretation boost
+        # ==========================
+        if state.get("mfi_bullish") and state.get("obv_rising"):
+            score += 10
+
+        if state.get("mfi_bearish") and state.get("obv_falling"):
+            score -= 10
+
+        # ==========================
+        # Normalize
+        # ==========================
+        return max(0.0, min(100.0, score))
+
+    except Exception:
+
+        logger.exception("Money flow score calculation failed.")
+
+        return 50.0
+
+# ==========================================================
+# Money Flow + Volume Score
+# ==========================================================
+
+
+def calculate_money_flow_score(state: dict) -> float:
+    """
+    Money Flow + Volume score (0 ~ 100)
+    Weight: 20%
+    """
+
+    score = 50.0
+
+    try:
+
+        # ==========================
+        # MFI Contribution
+        # ==========================
+        mfi = state.get("mfi", 50)
+
+        if mfi >= 80:
+            score -= 15  # overbought distribution risk
+
+        elif mfi <= 20:
+            score += 20  # strong accumulation
+
+        elif mfi > 50:
+            score += 10  # inflow dominance
+
+        else:
+            score -= 10  # outflow pressure
+
+        # ==========================
+        # OBV Trend
+        # ==========================
+        if state.get("obv_rising"):
+            score += 20
+
+        if state.get("obv_falling"):
+            score -= 20
+
+        # ==========================
+        # OBV Breakout (Strong signal)
+        # ==========================
+        if state.get("obv_breakout"):
+            score += 10
+
+        # ==========================
+        # Combined interpretation boost
+        # ==========================
+        if state.get("mfi_bullish") and state.get("obv_rising"):
+            score += 10
+
+        if state.get("mfi_bearish") and state.get("obv_falling"):
+            score -= 10
+
+        # ==========================
+        # Normalize
+        # ==========================
+        return max(0.0, min(100.0, score))
+
+    except Exception:
+
+        logger.exception("Money flow score calculation failed.")
+
+        return 50.0
